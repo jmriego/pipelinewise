@@ -1,0 +1,8 @@
+{
+  "allowUnprotectedBranchPush": true,
+  "dirToImages": {
+    ".": [
+      "registry.corp.indeed.com/idw/pipelinewise"
+    ]
+  }
+}

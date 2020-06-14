@@ -1,0 +1,56 @@
+#!/usr/bin/env groovy
+@Library('pipeline@release/2.x') _
+
+script = this
+
+// Discard old builds and artifacts
+properties([buildDiscarder(logRotator(daysToKeepStr: '5', numToKeepStr: '3', artifactDaysToKeepStr: '5', artifactNumToKeepStr: '1'))])
+
+// Use bootstrapNonDeployablePipeline if you don't want to deploy through feature branches
+bootstrapNonDeployablePipeline(script) {
+    // Product group
+    config.productGroup = "eda"
+    // Jenkins will send an email when there is a new build available to the following list of comma-separated addresses
+    config.newBuildAvailableEmailList = ""
+    // Jenkins will send an email if the build fails to the following list of comma-separated addresses and everyone who committed since the last successful build
+    config.failureEmailList = config.newBuildAvailableEmailList
+
+    // Git URL
+    gitConfig.gitUrl = "git@code.corp.indeed.com:eda/pipelinewise.git"
+    // Let Jenkins define the gitBranch for you
+    gitConfig.gitBranch = env.BRANCH_NAME
+    // Disabling this will disable all interactions between Jenkins and Jira.
+    jiraConfig.enableJiraActions = false
+    // Use dockerized build
+    config.buildInDocker = true
+
+    // Jenkins will email all commit authors
+    config.sendEmailsToCommitAuthors = true
+}
+
+// Branch-specific build parameters
+boolean isImageBuildingBranch = ["master","uat"].contains(env.BRANCH_NAME) || env.BRANCH_NAME.startsWith("EDA-")
+properties([[$class: 'ParametersDefinitionProperty', parameterDefinitions: [[$class: 'BooleanParameterDefinition', name: 'pushDockerImage', defaultValue: isImageBuildingBranch]]]])
+List<String> imageTagList = (env.BRANCH_NAME == "master") ? [env.BRANCH_NAME, "latest"] : [env.BRANCH_NAME]
+
+buildPipeline(script) {
+    // Build and push docker image if flag is set
+    if (params.pushDockerImage) {
+
+        stage("Build And Push Docker Image") {
+            buildAndPushImage(
+                script,
+                setupSteps: {
+                    // Copy or download the files required for the Docker image build
+                    sh "git submodule update --init"
+                },
+                dockerfilePath: "./Dockerfile",
+                gitUrl: "git@code.corp.indeed.com:eda/pipelinewise.git",
+                gitBranch: env.BRANCH_NAME,
+                workDir: ".",
+                imageName: "registry.corp.indeed.com/eda/pipelinewise",
+                imageTags: imageTagList,
+            )
+        }
+    }
+}
