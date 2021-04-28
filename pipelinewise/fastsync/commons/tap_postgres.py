@@ -382,8 +382,8 @@ class FastSyncTapPostgres:
                        'CASE WHEN "' ||column_name|| E'" < \\'0001-01-01 00:00:00.000\\' '
                             'OR "' ||column_name|| E'" > \\'9999-12-31 23:59:59.999\\' THEN \\'9999-12-31 23:59:59.999\\' '
                             'ELSE "' ||column_name|| '" END AS "' ||column_name|| '"'
-                    WHEN data_type IN ('double precision', 'numeric', 'decimal', 'real') THEN '{} AS ' || column_name
-                    WHEN data_type IN ('smallint', 'integer', 'bigint', 'serial', 'bigserial') THEN '{} AS ' || column_name
+                    WHEN data_type IN ('double precision', 'numeric', 'decimal', 'real') THEN {} || ' AS ' || column_name
+                    WHEN data_type IN ('smallint', 'integer', 'bigint', 'serial', 'bigserial') THEN {} || ' AS ' || column_name
                     ELSE '"'||column_name||'"'
                 END AS safe_sql_value
                 FROM information_schema.columns
