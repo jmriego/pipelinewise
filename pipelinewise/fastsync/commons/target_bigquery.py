@@ -94,20 +94,29 @@ class FastSyncTargetBigquery:
         self.query(sql)
 
     def create_table(self, target_schema: str, table_name: str, columns: List[str],
-                     is_temporary: bool = False):
+                     is_temporary: bool = False, sort_columns=False):
 
         table_dict = utils.tablename_to_dict(table_name)
         target_table = safe_name(table_dict.get('table_name' if not is_temporary else 'temp_table_name').lower())
 
         # skip the EXTRACTED, BATCHED and DELETED columns in case they exist because they gonna be added later
-        columns = ['{}'.format(c.lower()) for c in columns if not (c.startswith(self.EXTRACTED_AT_COLUMN) or
-                                              c.startswith(self.BATCHED_AT_COLUMN) or
-                                              c.startswith(self.DELETED_AT_COLUMN))]
+        columns = [c for c in columns if not (
+                                              c.lower().startswith(self.EXTRACTED_AT_COLUMN) or
+                                              c.lower().startswith(self.BATCHED_AT_COLUMN) or
+                                              c.lower().startswith(self.DELETED_AT_COLUMN))]
 
         columns += [f'{self.EXTRACTED_AT_COLUMN} TIMESTAMP',
                     f'{self.BATCHED_AT_COLUMN} TIMESTAMP',
                     f'{self.DELETED_AT_COLUMN} TIMESTAMP'
                     ]
+
+        # We need the sort the columns for some taps( for now tap-s3-csv)
+        # because later on when copying a csv file into Snowflake
+        # the csv file columns need to be in the same order as the the target table that will be created below
+        if sort_columns:
+            columns.sort()
+
+        columns = [c.lower() for c in columns]
 
         sql = f'CREATE OR REPLACE TABLE {target_schema}.{target_table} (' \
               f'{",".join(columns)})'

@@ -62,6 +62,7 @@ setup(name='pipelinewise',
               's3-csv-to-snowflake=pipelinewise.fastsync.s3_csv_to_snowflake:main',
               's3-csv-to-postgres=pipelinewise.fastsync.s3_csv_to_postgres:main',
               's3-csv-to-redshift=pipelinewise.fastsync.s3_csv_to_redshift:main',
+              's3-csv-to-bigquery=pipelinewise.fastsync.s3_csv_to_bigquery:main',
               'mongodb-to-snowflake=pipelinewise.fastsync.mongodb_to_snowflake:main',
               'mongodb-to-postgres=pipelinewise.fastsync.mongodb_to_postgres:main',
           ]
