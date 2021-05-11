@@ -54,7 +54,7 @@ class TestFastSyncTargetBigquery:
         """Validate if create schema queries generated correctly"""
         Client().query.return_value = bigquery_job
         self.bigquery.create_schema('new_schema')
-        Client().create_dataset.assert_called_with('new_schema')
+        Client().create_dataset.assert_called_with('new_schema', exists_ok=True)
 
     @patch("pipelinewise.fastsync.commons.target_bigquery.bigquery.Client")
     def test_drop_table(self, Client, bigquery_job):
@@ -77,13 +77,13 @@ class TestFastSyncTargetBigquery:
         Client().query.assert_called_with(
             'DROP TABLE IF EXISTS test_schema.`uppercase_table_temp`', job_config=ANY)
 
-        self.bigquery.drop_table('test_schema', 'test table with space')
+        self.bigquery.drop_table('test_schema', 'test_table_with_space')
         Client().query.assert_called_with(
-            'DROP TABLE IF EXISTS test_schema.`test table with space`', job_config=ANY)
+            'DROP TABLE IF EXISTS test_schema.`test_table_with_space`', job_config=ANY)
 
         self.bigquery.drop_table('test_schema', 'test table with space', is_temporary=True)
         Client().query.assert_called_with(
-            'DROP TABLE IF EXISTS test_schema.`test table with space_temp`', job_config=ANY)
+            'DROP TABLE IF EXISTS test_schema.`test_table_with_space_temp`', job_config=ANY)
 
     @patch("pipelinewise.fastsync.commons.target_bigquery.bigquery.Client")
     def test_create_table(self, Client, bigquery_job):
@@ -98,9 +98,9 @@ class TestFastSyncTargetBigquery:
         Client().query.assert_called_with(
             'CREATE OR REPLACE TABLE test_schema.`test_table` ('
             '`id` integer,`txt` string,'
-            '_sdc_extracted_at TIMESTAMP,'
-            '_sdc_batched_at TIMESTAMP,'
-            '_sdc_deleted_at TIMESTAMP)',
+            '_sdc_extracted_at timestamp,'
+            '_sdc_batched_at timestamp,'
+            '_sdc_deleted_at timestamp)',
             job_config=ANY)
 
         # Create table with reserved words in table and column names
@@ -112,9 +112,9 @@ class TestFastSyncTargetBigquery:
         Client().query.assert_called_with(
             'CREATE OR REPLACE TABLE test_schema.`order` ('
             '`id` integer,`txt` string,`select` string,'
-            '_sdc_extracted_at TIMESTAMP,'
-            '_sdc_batched_at TIMESTAMP,'
-            '_sdc_deleted_at TIMESTAMP)',
+            '_sdc_extracted_at timestamp,'
+            '_sdc_batched_at timestamp,'
+            '_sdc_deleted_at timestamp)',
             job_config=ANY)
 
         # Create table with mixed lower and uppercase and space characters
@@ -123,11 +123,11 @@ class TestFastSyncTargetBigquery:
                                     columns=['`ID` INTEGER',
                                              '`COLUMN WITH SPACE` STRING'])
         Client().query.assert_called_with(
-            'CREATE OR REPLACE TABLE test_schema.`table with space` ('
+            'CREATE OR REPLACE TABLE test_schema.`table_with_space` ('
             '`id` integer,`column with space` string,'
-            '_sdc_extracted_at TIMESTAMP,'
-            '_sdc_batched_at TIMESTAMP,'
-            '_sdc_deleted_at TIMESTAMP)',
+            '_sdc_extracted_at timestamp,'
+            '_sdc_batched_at timestamp,'
+            '_sdc_deleted_at timestamp)',
             job_config=ANY)
 
         # Create table with no primary key
@@ -138,9 +138,9 @@ class TestFastSyncTargetBigquery:
         Client().query.assert_called_with(
             'CREATE OR REPLACE TABLE test_schema.`test_table_no_pk` ('
             '`id` integer,`txt` string,'
-            '_sdc_extracted_at TIMESTAMP,'
-            '_sdc_batched_at TIMESTAMP,'
-            '_sdc_deleted_at TIMESTAMP)',
+            '_sdc_extracted_at timestamp,'
+            '_sdc_batched_at timestamp,'
+            '_sdc_deleted_at timestamp)',
             job_config=ANY)
 
     @patch("pipelinewise.fastsync.commons.target_bigquery.bigquery.LoadJobConfig")
@@ -198,7 +198,7 @@ class TestFastSyncTargetBigquery:
         assert bigquery_job_config.allow_quoted_newlines == True
         assert bigquery_job_config.skip_leading_rows == 0
         Client().dataset.assert_called_with('test_schema')
-        Client().dataset().table.assert_called_with('table with space and uppercase_temp')
+        Client().dataset().table.assert_called_with('table_with_space_and_uppercase_temp')
         assert Client().load_table_from_file.call_count == 3
 
     @patch("pipelinewise.fastsync.commons.target_bigquery.bigquery.Client")
@@ -227,7 +227,7 @@ class TestFastSyncTargetBigquery:
                                              role='test_role',
                                              is_temporary=False)
         Client().query.assert_called_with(
-            'GRANT SELECT ON test_schema.`table with SPACE and UPPERCASE` TO ROLE test_role', job_config=ANY)
+            'GRANT SELECT ON test_schema.`table_with_space_and_uppercase` TO ROLE test_role', job_config=ANY)
 
     @patch("pipelinewise.fastsync.commons.target_bigquery.bigquery.Client")
     def test_grant_usage_on_schema(self, Client, bigquery_job):
@@ -276,7 +276,7 @@ class TestFastSyncTargetBigquery:
                                    table_name='table with SPACE and UPPERCASE')
         assert bigquery_job_config.write_disposition == 'WRITE_TRUNCATE'
         Client().copy_table.assert_called_with(
-            'dummy-project.test_schema.table with space and uppercase_temp',
-            'dummy-project.test_schema.table with space and uppercase',
+            'dummy-project.test_schema.table_with_space_and_uppercase_temp',
+            'dummy-project.test_schema.table_with_space_and_uppercase',
             job_config=ANY)
-        Client().delete_table.assert_called_with('dummy-project.test_schema.table with space and uppercase_temp')
+        Client().delete_table.assert_called_with('dummy-project.test_schema.table_with_space_and_uppercase_temp')
